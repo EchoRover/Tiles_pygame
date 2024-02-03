@@ -13,7 +13,7 @@ class WaveFunctionCollaspe:
     def __init__(self,image):
     
 
-        self.image = (image)
+        self.image = image
         self.create_tiledata()
         for i in range(1):
             self.creategrid()
