@@ -2,104 +2,186 @@ from json import dumps as pp
 import random
 from tabulate import tabulate
 from PIL import Image, ImageDraw
+import cProfile
+import heapq
 
-class WaveFunctionCollapse:
-    def __init__(self, image):
+image = """mlsslm
+mlslmm
+lssslm
+mlsllm
+mmlmmm"""
+
+image2 = """lllllmsssb
+lllmsbsylb
+lrsbssylrs
+rsssslrsbl
+sblbllllms
+ssslblmsbs
+lymssslrll
+lsssslyssy
+sllllllrsr
+lbmsyrblbl"""
+
+image1 = """lllllmsssb
+lllusbsylb
+lrsbsmylrs
+rssuslsrbl
+sblbllllms
+ssslblmsbs
+lymssslrll
+lsssslyssy
+sllllllrsr
+lbsmyrblbl"""
+
+
+class WaveFunctionCollaspe:
+    def __init__(self,image):
+    
+
         self.image = image
-        self.create_tile_data()
-        for _ in range(1):
-            self.create_grid()
-            self.create_img(self.grid)
+        self.setup()
+ 
 
-    def create_tile_data(self):
-        self.tiles = {key: {"n": set(), "s": set(), "e": set(), "w": set()} for key in set(self.image) - {'\n'}}
-        self.update_tiles(self.image)
+    def setup(self):
+        self.create_tiledata()
+        self.update_tiledate(self.image)
 
-    def update_tiles(self, image):
-        temp_img = image.split("\n")
-        length, breadth = len(temp_img[0]), len(temp_img)
+    def generate(self,length = 5,breadth = 5):
+        self.repeat_count = 0
+        self.length = length
+        self.breadth = breadth
+        self.creategrid()
 
-        for j in range(breadth):
-            for i in range(length):
-                key = temp_img[j][i]
-                for dir, dx, dy in (("n", 0, -1), ("s", 0, 1), ("e", 1, 0), ("w", -1, 0)):
-                    nx, ny = i + dx, j + dy
-                    if 0 <= nx < length and 0 <= ny < breadth:
-                        new_tile = temp_img[ny][nx]
-                        if new_tile not in self.tiles[key][dir]:
-                            self.tiles[key][dir].add(new_tile)
-
-    def create_grid(self, length=50, breadth=50):
-        self.length, self.breadth = length, breadth
-        items = tuple(self.tiles.keys())
-        self.grid = [[items for _ in range(length)] for _ in range(breadth)]
-        self.copy = [[items for _ in range(length)] for _ in range(breadth)]
-
-        tile = self.find_tile_collapse()
-
+        tile  = self.find_tile_collapse()
+        self.iter = 0
+        
         while tile:
-            fail = self.collapse_tile(tile)
-            if fail:
-                self.grid = self.update_grid()
+            notfail = self.collapse_tile(tile[0],tile[1])
+
+            if notfail == True:
+                self.update_grid(tile)
+            else:
+                print("fali")
+                
             tile = self.find_tile_collapse()
 
-        print(tabulate(self.grid, tablefmt='grid'), "\n\n")
+            if self.repeat_count > 10:
+                print(self.repeat_count)
+            self.iter += 1
 
-    def find_entropy(self, x, y, items):
-        if not isinstance(items, (list, tuple,set)):
-            return float('inf'), items
+       
 
-        new_items = set(items)
-        for state in items:
-            for r_dir, dx, dy in (("s", 0, -1), ("n", 0, 1), ("w", 1, 0), ("e", -1, 0)):
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < self.length and 0 <= ny < self.breadth:
-                    if len(self.grid[ny][nx]) == 1 and state not in self.tiles[state][r_dir]:
-                        new_items.remove(state)
-                        break
 
-        return len(new_items), new_items
+            # self.show()
+            # if self.iter % (0.2 * self.breadth * self.length) == 0:
+            #     pass
+            #     self.create_img(self.grid)
+          
+            
 
+        
+
+    def create_tiledata(self):
+        self.tiles = {key:{"n":set(),"s":set(),"e":set(),"w":set()} for key in set(list(self.image))}
+        del self.tiles["\n"]
+ 
+    def update_tiledate(self,image):
+        tempimg = image.split("\n")
+        img_len,img_bre = len(tempimg[0]),len(tempimg)
+
+        for j in range(img_bre):
+            for i in range(img_len):
+                key = tempimg[j][i]
+                for dir,dx,dy in  (("n",0,-1),("s",0,1),("e",1,0),("w",-1,0)):
+                    if 0 <= (i + dx) < img_len and 0 <= (j + dy) < img_bre:
+                        newtile = tempimg[j + dy][i + dx]
+                        self.tiles[key][dir].add(newtile)
+    
+    def creategrid(self):
+        items = list(self.tiles.keys())
+        self.grid = [[items for _ in range(self.length)] for __ in range(self.breadth)]
+        self.copy = [row.copy() for row in self.grid]
+        self.entropy = {len(items):set([(i,j) for i in range(self.length) for j in range(self.breadth)])}
+        self.reduced = set()
+        
     def find_tile_collapse(self):
-        self.et = [[None for _ in range(self.length)] for _ in range(self.breadth)]
-        for j in range(self.breadth):
-            for i in range(self.length):
-                self.et[j][i] = self.find_entropy(i, j, self.grid[j][i])[0]
 
-        low = min(min(row) for row in self.et)
-        if low == float('inf'):
+        try:
+            min_entropy = min(self.entropy.keys())
+        except:
             return None
+        if self.entropy[min_entropy] == set():
+            return None
+        else:
+            return random.choice(list(self.entropy[min_entropy]))
+        
+    def update_grid(self,starttile):
+        stack = [starttile]
+        while stack != []:
+            x,y = stack.pop()
+            myitems = self.grid[y][x] 
+            if isinstance(myitems,str):
+                myitems = [myitems]
+            
+            for rdir,nx,ny in  (("n",x,y - 1),("s",x,y + 1),("e",x + 1,y),("w",x - 1,y)):
+                if (0 <= nx < self.length) and (0 <= ny < self.breadth) and not((nx,ny) in self.reduced):
+                    sidetile = self.grid[ny][nx]
+                    if self.tile_reduced(nx,ny,sidetile,rdir,myitems):
+                        stack.append((nx,ny))
 
-        tiles = [(i, j) for j, row in enumerate(self.et) for i, val in enumerate(row) if val == low]
-        return random.choice(tiles) if tiles else None
-
-    def update_grid(self):
-        self.et = [[None for _ in range(self.length)] for _ in range(self.breadth)]
-        for j in range(self.breadth):
-            for i in range(self.length):
-                self.et[j][i] = self.find_entropy(i, j, self.grid[j][i])[1]
-
-        return self.et
-
-    def collapse_tile(self, tile):
-        x, y = tile
-        items = self.grid[y][x]
-
-        if not items:
-            self.create_img(self.grid)
-            self.grid = self.copy
-            self.create_img(self.grid)
-            print(self.grid)
+    def tile_reduced(self,x,y,mytile,dirs,constraint):
+        newmytile = mytile.copy()
+        reduced = False
+        for tile in mytile:
+            for other in constraint:
+                if tile in self.tiles[other][dirs]:
+                    break
+            else:
+                newmytile.remove(tile)
+                reduced = True
+        if not reduced:
             return False
 
-        if len(items) > 1:
-            self.copy = [row.copy() for row in self.grid]
+        new_ent = len(newmytile)
 
-        new_tile = random.choice(list(items))
-        self.grid[y][x] = new_tile
+        if new_ent in self.entropy:
+            self.entropy[new_ent].add((x,y))
+        else:
+            self.entropy[new_ent] = {(x,y)}     
+        
+        # self.entropy[len(mytile)] = [i for i in self.entropy[len(mytile)] if i != (x,y)]
+        self.entropy[len(mytile)].remove((x,y))
+
+        self.chk(len(mytile))
+        self.grid[y][x] = newmytile
         return True
+      
+    def collapse_tile(self,x,y):
+  
+        items = self.grid[y][x]
 
-    def create_img(self, grid):
+        if len(items) == 0:
+            self.grid = self.copy
+            self.repeat_count += 1
+            return False
+
+        # elif len(items) > 1:
+        #     self.copy = [row.copy() for row in self.grid]
+
+        self.grid[y][x] = random.choice(items)
+
+        self.entropy[len(items)].remove((x,y))
+        self.chk(len(items))
+        self.reduced.add((x,y))
+
+        
+        return True
+    
+    def show(self,*args):
+        print(tabulate(self.grid,tablefmt = 'grid'))
+        print(*args,"\n")
+
+    def create_img(self,grid):
         cell_size = 15  # Adjust as needed
         img_width = len(grid[0]) * cell_size
         img_height = len(grid) * cell_size
@@ -114,18 +196,23 @@ class WaveFunctionCollapse:
                 if cell == 'm':
                     color = (50, 168, 82)  # Gray for mountains
                 elif cell == 'l':
-                    color = (139, 69, 19)  # Brown for land
+                    color = (139, 69, 19)  # green for land
                 elif cell == 's':
                     color = (0, 0, 128)  # Navy blue for sea
+
 
                 draw.rectangle([j * cell_size, i * cell_size, (j + 1) * cell_size, (i + 1) * cell_size], fill=color)
 
         image.show()
 
+    def chk(self,key):
+        if self.entropy[key] == set():
+            del self.entropy[key]
 
-image = """mlsslm
-mlslmm
-lssslm
-mlsllm
-mmlmmm"""
-wfc = WaveFunctionCollapse(image)
+
+
+wfc = WaveFunctionCollaspe(image)
+cProfile.run("wfc.generate(100,100)")
+
+# wfc.show("FINAL repeat =",wfc.repeat_count,"iter =",wfc.iter)
+wfc.create_img(wfc.grid)

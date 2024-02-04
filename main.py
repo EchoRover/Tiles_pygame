@@ -46,10 +46,11 @@ class WaveFunctionCollaspe:
         self.create_tiledata()
         self.update_tiledate(self.image)
 
-    def generate(self,length = 5,breadth = 5):
+    def generate(self,length = 5,breadth = 5,random = True):
         self.repeat_count = 0
         self.length = length
         self.breadth = breadth
+        self.randomfunc = self.random_entropy if random else self.psudorandom_entropy
         self.creategrid()
 
         tile  = self.find_tile_collapse()
@@ -60,6 +61,8 @@ class WaveFunctionCollaspe:
 
             if notfail == True:
                 self.update_grid(tile)
+            else:
+                print("fali")
                 
             tile = self.find_tile_collapse()
 
@@ -67,14 +70,16 @@ class WaveFunctionCollaspe:
                 print(self.repeat_count)
             self.iter += 1
 
+       
+
+
             # self.show()
             # if self.iter % (0.2 * self.breadth * self.length) == 0:
             #     pass
             #     self.create_img(self.grid)
+          
             
-         
 
-        
         
 
     def create_tiledata(self):
@@ -97,41 +102,27 @@ class WaveFunctionCollaspe:
         items = list(self.tiles.keys())
         self.grid = [[items for _ in range(self.length)] for __ in range(self.breadth)]
         self.copy = [row.copy() for row in self.grid]
-        self.entropy = [[len(items) for _ in range(self.length)] for j in range(self.breadth)]
-        self.entropy2 = {len(items):[(i,j) for i in range(self.length) for j in range(self.breadth)]}
+        self.entropy = {len(items):set([(i,j) for i in range(self.length) for j in range(self.breadth)])}
+        self.reduced = set()
         
-    
-    
     def find_tile_collapse(self):
-        # print(self.entropy2,"\n\n")
 
         try:
-            min_entropy = min(self.entropy2.keys())
+            min_entropy = min(self.entropy.keys())
         except:
             return None
-        if self.entropy2[min_entropy] == []:
+        if self.entropy[min_entropy] == set():
             return None
         else:
-            return random.choice(self.entropy2[min_entropy])
+            return self.randomfunc(min_entropy)
+    def psudorandom_entropy(self,min_entropy):
+        a = self.entropy[min_entropy].pop()
+        self.entropy[min_entropy].add(a)
+        return a
+    def random_entropy(self,min_entropy):
+        return random.choice(list(self.entropy[min_entropy]))
         
-        # min_entropy = float('inf')
-        # min_indices = set()
-
-        # for j in range(self.breadth):
-        #     for i in range(self.length):
-        #         current_entropy = self.entropy[j][i]
-
-        #         if current_entropy == min_entropy:
-        #             min_indices.add((i, j))
-        #         elif current_entropy < min_entropy:
-        #             min_entropy = current_entropy
-        #             min_indices = {(i,j)}
-
-        # if min_entropy == float('inf'):
-        #     return None
-        # else:
-        #     return random.choice(list(min_indices))
-    
+        
     def update_grid(self,starttile):
         stack = [starttile]
         while stack != []:
@@ -141,14 +132,13 @@ class WaveFunctionCollaspe:
                 myitems = [myitems]
             
             for rdir,nx,ny in  (("n",x,y - 1),("s",x,y + 1),("e",x + 1,y),("w",x - 1,y)):
-                if 0 <= nx < self.length and 0 <= ny < self.breadth and not isinstance(self.grid[ny][nx],str):
+                if (0 <= nx < self.length) and (0 <= ny < self.breadth) and not((nx,ny) in self.reduced):
                     sidetile = self.grid[ny][nx]
                     if self.tile_reduced(nx,ny,sidetile,rdir,myitems):
                         stack.append((nx,ny))
 
     def tile_reduced(self,x,y,mytile,dirs,constraint):
         newmytile = mytile.copy()
-
         reduced = False
         for tile in mytile:
             for other in constraint:
@@ -157,23 +147,25 @@ class WaveFunctionCollaspe:
             else:
                 newmytile.remove(tile)
                 reduced = True
+        if not reduced:
+            return False
 
         new_ent = len(newmytile)
-        if new_ent in self.entropy2:
-            self.entropy2[new_ent].append((x,y))
+
+        if new_ent in self.entropy:
+            self.entropy[new_ent].add((x,y))
         else:
-            self.entropy2[new_ent] = [(x,y)] 
-        self.entropy2[len(mytile)].remove((x,y))
+            self.entropy[new_ent] = {(x,y)}     
+        
+        # self.entropy[len(mytile)] = [i for i in self.entropy[len(mytile)] if i != (x,y)]
+        self.entropy[len(mytile)].remove((x,y))
+
         self.chk(len(mytile))
-
-
-        self.entropy[y][x] = new_ent
-
-
         self.grid[y][x] = newmytile
-        return reduced
+        return True
       
     def collapse_tile(self,x,y):
+  
         items = self.grid[y][x]
 
         if len(items) == 0:
@@ -185,9 +177,11 @@ class WaveFunctionCollaspe:
         #     self.copy = [row.copy() for row in self.grid]
 
         self.grid[y][x] = random.choice(items)
-        self.entropy[y][x] = float('inf')
-        self.entropy2[len(items)].remove((x,y))
+
+        self.entropy[len(items)].remove((x,y))
         self.chk(len(items))
+        self.reduced.add((x,y))
+
         
         return True
     
@@ -220,13 +214,13 @@ class WaveFunctionCollaspe:
         image.show()
 
     def chk(self,key):
-        if self.entropy2[key] == []:
-            del self.entropy2[key]
+        if self.entropy[key] == set():
+            del self.entropy[key]
 
 
 
 wfc = WaveFunctionCollaspe(image)
-cProfile.run("wfc.generate(10,10)")
+wfc.generate(1000,1000,False)
 
 # wfc.show("FINAL repeat =",wfc.repeat_count,"iter =",wfc.iter)
 wfc.create_img(wfc.grid)
