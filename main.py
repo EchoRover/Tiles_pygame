@@ -77,11 +77,8 @@ class WaveFunctionCollaspe:
             # if self.iter % (0.2 * self.breadth * self.length) == 0:
             #     pass
             #     self.create_img(self.grid)
-          
-            
-
-        
-
+        self.create_img(self.grid)
+   
     def create_tiledata(self):
         self.tiles = {key:{"n":set(),"s":set(),"e":set(),"w":set()} for key in set(list(self.image))}
         del self.tiles["\n"]
@@ -121,7 +118,6 @@ class WaveFunctionCollaspe:
         return a
     def random_entropy(self,min_entropy):
         return random.choice(list(self.entropy[min_entropy]))
-        
         
     def update_grid(self,starttile):
         stack = [starttile]
@@ -202,11 +198,26 @@ class WaveFunctionCollaspe:
                 color = (255, 255, 255)  # Default color (white)
 
                 if cell == 'm':
-                    color = (50, 168, 82)  # Gray for mountains
+                    color = (139, 137, 137)  # Gray for mountains
                 elif cell == 'l':
-                    color = (139, 69, 19)  # green for land
+                    color = (114, 79, 43)  # green for land
+                elif cell == 'g':
+                    color = (144, 238, 144)  # light green for grassland
                 elif cell == 's':
-                    color = (0, 0, 128)  # Navy blue for sea
+                    color = (0, 0, 128)  # dark blue for standard sea
+                elif cell == 'b':
+                    color = (255, 228, 196)  # beige for beach
+                elif cell == 'e':
+                    color = (173, 216, 230)  # light blue for light ocean
+                elif cell == 'd':
+                    color = (0, 0, 139)  # dark blue for deep ocean
+                elif cell == 'a':
+                    color = (154, 205, 50)  # olive green for light land
+                elif cell == 'y':
+                    color = (210, 180, 140)  # tan for sandy land
+                elif cell == 'r':
+                    color = (169, 169, 169)  # dark gray for rocky land
+
 
 
                 draw.rectangle([j * cell_size, i * cell_size, (j + 1) * cell_size, (i + 1) * cell_size], fill=color)
@@ -218,9 +229,22 @@ class WaveFunctionCollaspe:
             del self.entropy[key]
 
 
+new_image = """lymaadggds
+msrrsrsrll
+arllllllla
+gblblbsybr
+ssyssssyss
+ysyrrysyys
+dyyayydyrs
+mgyyymgyrs
+lmgggmgmrl
+sllsslllls"""
 
-wfc = WaveFunctionCollaspe(image)
-wfc.generate(1000,1000,False)
+
+
+wfc = WaveFunctionCollaspe(new_image)
+wfc.create_img(new_image.split("\n"))
+wfc.generate(50,50)
 
 # wfc.show("FINAL repeat =",wfc.repeat_count,"iter =",wfc.iter)
-wfc.create_img(wfc.grid)
+# wfc.create_img(wfc.grid)
