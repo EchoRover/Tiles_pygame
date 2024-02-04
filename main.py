@@ -198,7 +198,7 @@ class WaveFunctionCollaspe:
                 color = (255, 255, 255)  # Default color (white)
 
                 if cell == 'm':
-                    color = (139, 137, 137)  # Gray for mountains
+                    color = (0, 238, 0)  # Gray for mountains
                 elif cell == 'l':
                     color = (114, 79, 43)  # green for land
                 elif cell == 'g':
@@ -242,8 +242,8 @@ sllsslllls"""
 
 
 
-wfc = WaveFunctionCollaspe(new_image)
-wfc.create_img(new_image.split("\n"))
+wfc = WaveFunctionCollaspe(image)
+# wfc.create_img(new_image.split("\n"))
 wfc.generate(50,50)
 
 # wfc.show("FINAL repeat =",wfc.repeat_count,"iter =",wfc.iter)
