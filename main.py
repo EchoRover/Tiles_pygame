@@ -9,6 +9,28 @@ lssslm
 mlsllm
 mmlmmm"""
 
+image2 = """lllllmsssb
+lllmsbsylb
+lrsbssylrs
+rsssslrsbl
+sblbllllms
+ssslblmsbs
+lymssslrll
+lsssslyssy
+sllllllrsr
+lbmsyrblbl"""
+
+image1 = """lllllmsssb
+lllusbsylb
+lrsbsmylrs
+rssuslsrbl
+sblbllllms
+ssslblmsbs
+lymssslrll
+lsssslyssy
+sllllllrsr
+lbsmyrblbl"""
+
 
 class WaveFunctionCollaspe:
     def __init__(self,image):
@@ -16,7 +38,9 @@ class WaveFunctionCollaspe:
 
         self.image = image
         self.setup()
-        self.generate(50,50)
+        for i in range(1):
+   
+            self.generate(500,500)
 
     def setup(self):
         self.create_tiledata()
@@ -33,9 +57,10 @@ class WaveFunctionCollaspe:
         while tile:
             notfail = self.collapse_tile(tile[0],tile[1])
             if notfail == True:
-                self.grid = self.update_grid()
-
+                self.update_grid(tile)
+                
             tile = self.find_tile_collapse()
+         
 
         
         self.show("FINAL",self.repeat_count)
@@ -62,45 +87,55 @@ class WaveFunctionCollaspe:
         self.grid = [[items for _ in range(self.length)] for __ in range(self.breadth)]
         self.copy = [row.copy() for row in self.grid]
         self.entropy = [[None for _ in range(self.length)] for j in range(self.breadth)]
-          
-    def findenthorpy(self,x,y,items):
-        if type(items) == str:
-            return float('inf'),items
-        newitems = items.copy()
-        for state in items:
-            for rdir,nx,ny in  (("s",x,y - 1),("n",x,y + 1),("w",x + 1,y),("e",x - 1,y)):
-                if 0 <= nx < self.length and 0 <= ny < self.breadth and isinstance(self.grid[ny][nx],str):
-                    sidetile = self.grid[ny][nx]
-                    if sidetile not in self.tiles[state][rdir]:
-                        newitems.remove(state)
-                        break
-    
-        return len(newitems),newitems
-    
+            
     def find_tile_collapse(self):
-        for j in range(self.breadth):
-            for i in range(self.length):
-                self.entropy[j][i] = self.findenthorpy(i,j,self.grid[j][i])[0]
         low = float('inf')
-        for row in self.entropy:
-            low = min(low,*row)
-        if low == float('inf'):
-            return None
-
         tiles = []
         for j in range(self.breadth):
             for i in range(self.length):
-                if self.entropy[j][i] == low:
-                    tiles.append((i,j))
-        return random.choice(tiles)
+                if not isinstance(self.grid[j][i],str):
+                    size = len(self.grid[j][i])
+                    if size == low:
+                        tiles.append((i,j))
+                    elif size < low:
+                        low = size
+                        tiles.clear()
+                        tiles.append((i,j))
+        if low == float('inf'):
+            return None
+        else:
+            return random.choice(tiles)
     
-    def update_grid(self):
-        self.update = [row.copy() for row in self.grid]
-        for j in range(self.breadth):
-            for i in range(self.length):
-                self.update[j][i] = self.findenthorpy(i,j,self.grid[j][i])[1]
-        
-        return self.update
+    def update_grid(self,starttile):
+        stack = [starttile]
+        while stack != []:
+            x,y = stack.pop()
+            myitems = self.grid[y][x] 
+            if isinstance(myitems,str):
+                myitems = [myitems]
+            
+            for rdir,nx,ny in  (("n",x,y - 1),("s",x,y + 1),("e",x + 1,y),("w",x - 1,y)):
+                if 0 <= nx < self.length and 0 <= ny < self.breadth and not isinstance(self.grid[ny][nx],str):
+                    sidetile = self.grid[ny][nx]
+                    if self.tile_reduced(nx,ny,sidetile,rdir,myitems):
+                        stack.append((nx,ny))
+
+    def tile_reduced(self,x,y,mytile,dirs,constraint):
+        newmytile = mytile.copy()
+
+        reduced = False
+        for tile in mytile:
+
+            for other in constraint:
+                if tile in self.tiles[other][dirs]:
+
+                    break
+            else:
+                newmytile.remove(tile)
+                reduced = True
+
+        self.grid[y][x] = newmytile
+        return reduced
       
     def collapse_tile(self,x,y):
         items = self.grid[y][x]
@@ -135,9 +170,10 @@ class WaveFunctionCollaspe:
                 if cell == 'm':
                     color = (50, 168, 82)  # Gray for mountains
                 elif cell == 'l':
-                    color = (139, 69, 19)  # Brown for land
+                    color = (139, 69, 19)  # green for land
                 elif cell == 's':
                     color = (0, 0, 128)  # Navy blue for sea
+
 
                 draw.rectangle([j * cell_size, i * cell_size, (j + 1) * cell_size, (i + 1) * cell_size], fill=color)
 
