@@ -11,102 +11,81 @@ lssslm
 mlsllm
 mmlmmm"""
 
-image2 = """lllllmsssb
-lllmsbsylb
-lrsbssylrs
-rsssslrsbl
-sblbllllms
-ssslblmsbs
-lymssslrll
-lsssslyssy
-sllllllrsr
-lbmsyrblbl"""
-
-image1 = """lllllmsssb
-lllusbsylb
-lrsbsmylrs
-rssuslsrbl
-sblbllllms
-ssslblmsbs
-lymssslrll
-lsssslyssy
-sllllllrsr
-lbsmyrblbl"""
-
 
 class WaveFunctionCollaspe:
-    def __init__(self,image,conn):
-    
+    def __init__(self, tile_grid, tile_to_img, tile_size):
 
-        self.image = image
-        self.connection = conn
+        self.tile_grid = tile_grid
+        self.tile_name_to_image = tile_to_img
+        self.tile_size = tile_size
         self.setup()
- 
 
-    def setup(self):
-        self.create_tiledata()
-        self.update_tiledate(self.image)
-        # print(self.tiles)
+    def setup(self,):
+        self.tiles = {key: {"n": set(), "s": set(), "e": set(), "w": set()}
+                      for key in self.tile_name_to_image.keys()}
+        self.update_tiledate(self.tile_grid)
 
-    def generate(self,length = 5,breadth = 5,random = True):
+    def generate(self, length=5, breadth=5, rad=True):
+
         self.repeat_count = 0
         self.length = length
         self.breadth = breadth
-        self.randomfunc = self.random_entropy if random else self.psudorandom_entropy
+        self.randomfunc = self.random_entropy if rad else self.psudorandom_entropy
         self.creategrid()
-
-        tile  = self.find_tile_collapse()
+        self.t2percent = 1 or int(0.01 * self.length * self.breadth)
+        self.whensave = self.t2percent
         self.iter = 0
-        
-        while tile:
-            notfail = self.collapse_tile(tile[0],tile[1])
+        self.last = 0
 
-            if notfail == True:
+        tile = self.find_tile_collapse()
+
+        while tile:
+            if self.collapse_tile(tile[0], tile[1]):
                 self.update_grid(tile)
-            else:
-                print("fali")
-                
+
             tile = self.find_tile_collapse()
 
-            if self.repeat_count > 10:
+            if self.repeat_count != self.last:
                 print(self.repeat_count)
+                self.last = self.repeat_count
+                print(tabulate(self.entropy))
+                self.show()
+                self.create_img(self.grid)
+                if self.iter > 2:
+                    quit()
             self.iter += 1
-
-       
-
 
             # self.show()
             # if self.iter % (0.2 * self.breadth * self.length) == 0:
             #     pass
             #     self.create_img(self.grid)
+
         self.create_img(self.grid)
-   
-    def create_tiledata(self):
-        print(self.connection,"hello")
-        self.tiles = {key:{"n":set(),"s":set(),"e":set(),"w":set()} for key in self.connection.keys()}
-        # del self.tiles["\n"]
- 
-    def update_tiledate(self,image):
+
+    def update_tiledate(self, image):
         tempimg = image
-        img_len,img_bre = len(tempimg[0]),len(tempimg)
+        img_len, img_bre = len(tempimg[0]), len(tempimg)
 
         for j in range(img_bre):
             for i in range(img_len):
                 key = tempimg[j][i]
-                for dir,dx,dy in  (("n",0,-1),("s",0,1),("e",1,0),("w",-1,0)):
+                for dir, dx, dy in (("n", 0, -1), ("s", 0, 1), ("e", 1, 0), ("w", -1, 0)):
                     if 0 <= (i + dx) < img_len and 0 <= (j + dy) < img_bre:
                         newtile = tempimg[j + dy][i + dx]
                         self.tiles[key][dir].add(newtile)
-    
+
     def creategrid(self):
         items = list(self.tiles.keys())
-        self.grid = [[items for _ in range(self.length)] for __ in range(self.breadth)]
+        self.grid = [[items for _ in range(self.length)]
+                     for __ in range(self.breadth)]
         self.copy = [row.copy() for row in self.grid]
-        self.entropy = {len(items):set([(i,j) for i in range(self.length) for j in range(self.breadth)])}
+        self.entropy = {len(items): set(
+            [(i, j) for i in range(self.length) for j in range(self.breadth)])}
+        self.entropy_copy = {len(items): set(
+            [(i, j) for i in range(self.length) for j in range(self.breadth)])}
         self.reduced = set()
-        
-    def find_tile_collapse(self):
 
+    def find_tile_collapse(self):
         try:
             min_entropy = min(self.entropy.keys())
         except:
@@ -115,28 +94,30 @@ class WaveFunctionCollaspe:
             return None
         else:
             return self.randomfunc(min_entropy)
-    def psudorandom_entropy(self,min_entropy):
+
+    def psudorandom_entropy(self, min_entropy):
         a = self.entropy[min_entropy].pop()
         self.entropy[min_entropy].add(a)
         return a
-    def random_entropy(self,min_entropy):
+
+    def random_entropy(self, min_entropy):
         return random.choice(list(self.entropy[min_entropy]))
-        
-    def update_grid(self,starttile):
+
+    def update_grid(self, starttile):
         stack = [starttile]
         while stack != []:
-            x,y = stack.pop()
-            myitems = self.grid[y][x] 
-            if isinstance(myitems,str):
+            x, y = stack.pop()
+            myitems = self.grid[y][x]
+            if isinstance(myitems, str):
                 myitems = [myitems]
-            
-            for rdir,nx,ny in  (("n",x,y - 1),("s",x,y + 1),("e",x + 1,y),("w",x - 1,y)):
-                if (0 <= nx < self.length) and (0 <= ny < self.breadth) and not((nx,ny) in self.reduced):
-                    sidetile = self.grid[ny][nx]
-                    if self.tile_reduced(nx,ny,sidetile,rdir,myitems):
-                        stack.append((nx,ny))
 
-    def tile_reduced(self,x,y,mytile,dirs,constraint):
+            for rdir, nx, ny in (("n", x, y - 1), ("s", x, y + 1), ("e", x + 1, y), ("w", x - 1, y)):
+                if (0 <= nx < self.length) and (0 <= ny < self.breadth) and not ((nx, ny) in self.reduced):
+                    sidetile = self.grid[ny][nx]
+                    if self.tile_reduced(nx, ny, sidetile, rdir, myitems):
+                        stack.append((nx, ny))
+
+    def tile_reduced(self, x, y, mytile, dirs, constraint):
         newmytile = mytile.copy()
         reduced = False
         for tile in mytile:
@@ -152,172 +133,148 @@ class WaveFunctionCollaspe:
         new_ent = len(newmytile)
 
         if new_ent in self.entropy:
-            self.entropy[new_ent].add((x,y))
+            self.entropy[new_ent].add((x, y))
         else:
-            self.entropy[new_ent] = {(x,y)}     
-        
+            self.entropy[new_ent] = {(x, y)}
+
         # self.entropy[len(mytile)] = [i for i in self.entropy[len(mytile)] if i != (x,y)]
-        self.entropy[len(mytile)].remove((x,y))
+        self.entropy[len(mytile)].remove((x, y))
 
         self.chk(len(mytile))
         self.grid[y][x] = newmytile
         return True
-      
-    def collapse_tile(self,x,y):
-  
+
+    def collapse_tile(self, x, y):
+
         items = self.grid[y][x]
 
         if len(items) == 0:
             self.grid = self.copy
+            self.entropy = self.entropy_copy
             self.repeat_count += 1
             return False
 
-        # elif len(items) > 1:
-        #     self.copy = [row.copy() for row in self.grid]
+        elif len(items) > 1 and self.whensave > self.iter:
+            self.copy = [row.copy() for row in self.grid]
+            self.entropy_copy = {
+                key: self.entropy[key].copy() for key in self.entropy.keys()}
+            self.whensave += self.t2percent
 
         self.grid[y][x] = random.choice(items)
-
-        self.entropy[len(items)].remove((x,y))
+        self.entropy[len(items)].remove((x, y))
         self.chk(len(items))
-        self.reduced.add((x,y))
-
-        
+        self.reduced.add((x, y))
         return True
-    
-    def show(self,*args):
-        print(tabulate(self.grid,tablefmt = 'grid'))
-        print(*args,"\n")
 
-    def create_img(self,grid):
-        cell_size = 15  # Adjust as needed
-        img_width = len(grid[0]) * cell_size
-        img_height = len(grid) * cell_size
+    def show(self, *args):
+        print(tabulate(self.grid, tablefmt='grid'))
+        print(*args, "\n")
 
+    def create_img(self, grid):
+        img_width = self.length * self.tile_size
+        img_height = self.breadth * self.tile_size
         image = Image.new("RGB", (img_width, img_height), "white")
-        draw = ImageDraw.Draw(image)
 
         for i, row in enumerate(grid):
-            for j, cell in enumerate(row):
-                color = (255, 255, 255)  # Default color (white)
+            for j, tile in enumerate(row):
+                try:
+                    image.paste(
+                    self.tile_name_to_image[tile], (j * self.tile_size, i * self.tile_size))
+                except:
+                    pass
+        image.show(title="FINAL")
+        return image
 
-                if cell == 'm':
-                    color = (0, 238, 0)  # Gray for mountains
-                elif cell == 'l':
-                    color = (114, 79, 43)  # green for land
-                elif cell == 'g':
-                    color = (144, 238, 144)  # light green for grassland
-                elif cell == 's':
-                    color = (0, 0, 128)  # dark blue for standard sea
-                elif cell == 'b':
-                    color = (255, 228, 196)  # beige for beach
-                elif cell == 'e':
-                    color = (173, 216, 230)  # light blue for light ocean
-                elif cell == 'd':
-                    color = (0, 0, 139)  # dark blue for deep ocean
-                elif cell == 'a':
-                    color = (154, 205, 50)  # olive green for light land
-                elif cell == 'y':
-                    color = (210, 180, 140)  # tan for sandy land
-                elif cell == 'r':
-                    color = (169, 169, 169)  # dark gray for rocky land
-
-
-
-                draw.rectangle([j * cell_size, i * cell_size, (j + 1) * cell_size, (i + 1) * cell_size], fill=color)
-
-        image.show()
-
-    def chk(self,key):
+    def chk(self, key):
         if self.entropy[key] == set():
             del self.entropy[key]
 
+
 class ImageTile:
-    def __init__(self,path,size):
-        self.path = path
-        self.size = size
-        self.image = Image.open(self.path)
-       
+    def __init__(self, path, tile_size):
+        self.tile_size = tile_size
+        self.image = Image.open(path)
 
     def cut(self):
-        s = self.size
-        parts = {}
-        # grid = [[" " for i in range(self.image.size[0] + self.size)] for j in range(self.image.size[1] + self.size)]
-        for j in range(self.size,self.image.size[1] + self.size,self.size):
-            for i in range(self.size,self.image.size[0] + self.size,self.size):
-                # grid[j][i] = "*"
-                # print(i,j)
-                parts[(i // s - 1,j // s - 1)] = self.image.crop((i - s,j - s,i,j))
-        l = self.image.size[0]//self.size
-        b = self.image.size[1]//self.size
-        
-   
 
+        tiles = {}
+        for j in range(self.tile_size, self.image.size[1] + self.tile_size, self.tile_size):
+            for i in range(self.tile_size, self.image.size[0] + self.tile_size, self.tile_size):
+                tiles[(i // self.tile_size - 1, j // self.tile_size - 1)
+                      ] = self.image.crop((i - self.tile_size, j - self.tile_size, i, j))
+
+        self.grid_length = self.image.size[0]//self.tile_size
+        self.grid_breadth = self.image.size[1]//self.tile_size
+
+        # create Unique tiles
         ids = "tile"
         count = 1
-        unique = {}
-        tiles = {}
-        for i in parts.values():
-            if i not in unique.values():
-                unique[ids + str(count)] = i
+        self.unique_tiles = {}
+        for i in tiles.values():
+            if i not in self.unique_tiles.values():
+                self.unique_tiles[ids + str(count)] = i
                 count += 1
-
-        key = list(unique.keys())
-        val = list(unique.values())
-
-            
+        print("done")
       
-        self.imgg = [[key[val.index(parts[(x,y)])] for x in range(l)] for y in range(b)]
-        # for i in self.imgg:
-        #     print(i)
-        # print(self.imgg)
 
-        img_width,img_height = self.image.size
+        # create tile grid
+
+        key = list(self.unique_tiles.keys())
+        val = list(self.unique_tiles.values())
+
+        self.tile_grid = [[key[val.index(tiles[(x, y)])] for x in range(self.grid_length)] for y in range(self.grid_breadth)]
+
+        return self.tile_grid, self.unique_tiles, self.tile_size
+
+    def check(self):
+        # recontruct image
+        print("Start")
+        img_width, img_height = self.image.size
 
         image = Image.new("RGB", (img_width, img_height), "white")
 
-        for i, row in enumerate(self.imgg):
+        for i, row in enumerate(self.tile_grid):
             for j, cell in enumerate(row):
-                image.paste(unique[cell],(j * self.size,i * self.size))
-        # image.show()
+                image.paste(self.unique_tiles[cell], (j * self.tile_size, i * self.tile_size))
+        image.show(title="Recontruct")
 
+        # display all tiles
+        tile_set = self.unique_tiles.values()
+        space_between_tiles = 4
+        max_rows = None
 
-
-
-        return self.imgg,unique
-
-
-
-    
-    
-
+        max_width = max(tile.width for tile in tile_set)
+        max_height = max(tile.height for tile in tile_set)
         
-    
- 
+        max_rows = max_rows or int(len(tile_set) ** 0.5)
+        max_columns = len(tile_set) // max_rows + 1
+
+        total_width = max_columns * (max_width + space_between_tiles) - space_between_tiles
+        total_height = ((len(tile_set) - 1) // max_columns + 1) * (max_height + space_between_tiles) - space_between_tiles
+
+        tile_img = Image.new("RGBA", (total_width, total_height), (0,0,0,0))
+
+        current_x, current_y = 0, 0
+        for tile in tile_set:
+            tile_img.paste(tile, (current_x, current_y))
+
+            current_x += max_width + space_between_tiles
+            if current_x + max_width > total_width:
+                current_x = 0
+                current_y += max_height + space_between_tiles
+        
+        tile_img.show(title="tile grid")
 
 
-    
+image = ImageTile("Village.png", 2)
 
+tile_grid, tile_to_img, tile_size = image.cut()
 
+image.check()
 
+# quit()
 
-new_image = """lymaadggds
-msrrsrsrll
-arllllllla
-gblblbsybr
-ssyssssyss
-ysyrrysyys
-dyyayydyrs
-mgyyymgyrs
-lmgggmgmrl
-sllsslllls"""
+wfc = WaveFunctionCollaspe(tile_grid,tile_to_img,tile_size)
 
-img,dicts = ImageTile("Lines.png",2).cut()
-
-
-wfc = WaveFunctionCollaspe(img,dicts)
-
-# # wfc.create_img(new_image.split("\n"))
-wfc.generate(50,50)
-
-# wfc.show("FINAL repeat =",wfc.repeat_count,"iter =",wfc.iter)
-# wfc.create_img(wfc.grid)
+for i in range(1):
+    wfc.generate(50,50,False)
