@@ -35,16 +35,18 @@ lbsmyrblbl"""
 
 
 class WaveFunctionCollaspe:
-    def __init__(self,image):
+    def __init__(self,image,conn):
     
 
         self.image = image
+        self.connection = conn
         self.setup()
  
 
     def setup(self):
         self.create_tiledata()
         self.update_tiledate(self.image)
+        # print(self.tiles)
 
     def generate(self,length = 5,breadth = 5,random = True):
         self.repeat_count = 0
@@ -80,11 +82,12 @@ class WaveFunctionCollaspe:
         self.create_img(self.grid)
    
     def create_tiledata(self):
-        self.tiles = {key:{"n":set(),"s":set(),"e":set(),"w":set()} for key in set(list(self.image))}
-        del self.tiles["\n"]
+        print(self.connection,"hello")
+        self.tiles = {key:{"n":set(),"s":set(),"e":set(),"w":set()} for key in self.connection.keys()}
+        # del self.tiles["\n"]
  
     def update_tiledate(self,image):
-        tempimg = image.split("\n")
+        tempimg = image
         img_len,img_bre = len(tempimg[0]),len(tempimg)
 
         for j in range(img_bre):
@@ -228,6 +231,74 @@ class WaveFunctionCollaspe:
         if self.entropy[key] == set():
             del self.entropy[key]
 
+class ImageTile:
+    def __init__(self,path,size):
+        self.path = path
+        self.size = size
+        self.image = Image.open(self.path)
+       
+
+    def cut(self):
+        s = self.size
+        parts = {}
+        # grid = [[" " for i in range(self.image.size[0] + self.size)] for j in range(self.image.size[1] + self.size)]
+        for j in range(self.size,self.image.size[1] + self.size,self.size):
+            for i in range(self.size,self.image.size[0] + self.size,self.size):
+                # grid[j][i] = "*"
+                # print(i,j)
+                parts[(i // s - 1,j // s - 1)] = self.image.crop((i - s,j - s,i,j))
+        l = self.image.size[0]//self.size
+        b = self.image.size[1]//self.size
+        
+   
+
+        ids = "tile"
+        count = 1
+        unique = {}
+        tiles = {}
+        for i in parts.values():
+            if i not in unique.values():
+                unique[ids + str(count)] = i
+                count += 1
+
+        key = list(unique.keys())
+        val = list(unique.values())
+
+            
+      
+        self.imgg = [[key[val.index(parts[(x,y)])] for x in range(l)] for y in range(b)]
+        # for i in self.imgg:
+        #     print(i)
+        # print(self.imgg)
+
+        img_width,img_height = self.image.size
+
+        image = Image.new("RGB", (img_width, img_height), "white")
+
+        for i, row in enumerate(self.imgg):
+            for j, cell in enumerate(row):
+                image.paste(unique[cell],(j * self.size,i * self.size))
+        # image.show()
+
+
+
+
+        return self.imgg,unique
+
+
+
+    
+    
+
+        
+    
+ 
+
+
+    
+
+
+
 
 new_image = """lymaadggds
 msrrsrsrll
@@ -240,10 +311,12 @@ mgyyymgyrs
 lmgggmgmrl
 sllsslllls"""
 
+img,dicts = ImageTile("Lines.png",2).cut()
 
 
-wfc = WaveFunctionCollaspe(image)
-# wfc.create_img(new_image.split("\n"))
+wfc = WaveFunctionCollaspe(img,dicts)
+
+# # wfc.create_img(new_image.split("\n"))
 wfc.generate(50,50)
 
 # wfc.show("FINAL repeat =",wfc.repeat_count,"iter =",wfc.iter)

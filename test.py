@@ -46,10 +46,11 @@ class WaveFunctionCollaspe:
         self.create_tiledata()
         self.update_tiledate(self.image)
 
-    def generate(self,length = 5,breadth = 5):
+    def generate(self,length = 5,breadth = 5,random = True):
         self.repeat_count = 0
         self.length = length
         self.breadth = breadth
+        self.randomfunc = self.random_entropy if random else self.psudorandom_entropy
         self.creategrid()
 
         tile  = self.find_tile_collapse()
@@ -76,11 +77,8 @@ class WaveFunctionCollaspe:
             # if self.iter % (0.2 * self.breadth * self.length) == 0:
             #     pass
             #     self.create_img(self.grid)
-          
-            
-
-        
-
+        self.create_img(self.grid)
+   
     def create_tiledata(self):
         self.tiles = {key:{"n":set(),"s":set(),"e":set(),"w":set()} for key in set(list(self.image))}
         del self.tiles["\n"]
@@ -113,7 +111,13 @@ class WaveFunctionCollaspe:
         if self.entropy[min_entropy] == set():
             return None
         else:
-            return random.choice(list(self.entropy[min_entropy]))
+            return self.randomfunc(min_entropy)
+    def psudorandom_entropy(self,min_entropy):
+        a = self.entropy[min_entropy].pop()
+        self.entropy[min_entropy].add(a)
+        return a
+    def random_entropy(self,min_entropy):
+        return random.choice(list(self.entropy[min_entropy]))
         
     def update_grid(self,starttile):
         stack = [starttile]
@@ -194,11 +198,26 @@ class WaveFunctionCollaspe:
                 color = (255, 255, 255)  # Default color (white)
 
                 if cell == 'm':
-                    color = (50, 168, 82)  # Gray for mountains
+                    color = (0, 238, 0)  # Gray for mountains
                 elif cell == 'l':
-                    color = (139, 69, 19)  # green for land
+                    color = (114, 79, 43)  # green for land
+                elif cell == 'g':
+                    color = (144, 238, 144)  # light green for grassland
                 elif cell == 's':
-                    color = (0, 0, 128)  # Navy blue for sea
+                    color = (0, 0, 128)  # dark blue for standard sea
+                elif cell == 'b':
+                    color = (255, 228, 196)  # beige for beach
+                elif cell == 'e':
+                    color = (173, 216, 230)  # light blue for light ocean
+                elif cell == 'd':
+                    color = (0, 0, 139)  # dark blue for deep ocean
+                elif cell == 'a':
+                    color = (154, 205, 50)  # olive green for light land
+                elif cell == 'y':
+                    color = (210, 180, 140)  # tan for sandy land
+                elif cell == 'r':
+                    color = (169, 169, 169)  # dark gray for rocky land
+
 
 
                 draw.rectangle([j * cell_size, i * cell_size, (j + 1) * cell_size, (i + 1) * cell_size], fill=color)
@@ -209,10 +228,90 @@ class WaveFunctionCollaspe:
         if self.entropy[key] == set():
             del self.entropy[key]
 
+class ImageTile:
+    def __init__(self,path,size):
+        self.path = path
+        self.size = size
+        self.image = Image.open(self.path)
+        return self.cut()
 
+    def cut(self):
+        s = self.size
+        parts = {}
+        # grid = [[" " for i in range(self.image.size[0] + self.size)] for j in range(self.image.size[1] + self.size)]
+        for j in range(self.size,self.image.size[1] + self.size,self.size):
+            for i in range(self.size,self.image.size[0] + self.size,self.size):
+                # grid[j][i] = "*"
+                # print(i,j)
+                parts[(i // s - 1,j // s - 1)] = self.image.crop((i - s,j - s,i,j))
+        l = self.image.size[0]//self.size
+        b = self.image.size[1]//self.size
+        
+   
+
+        ids = "tile"
+        count = 1
+        unique = {}
+        tiles = {}
+        for i in parts.values():
+            if i not in unique.values():
+                unique[ids + str(count)] = i
+                count += 1
+
+        key = list(unique.keys())
+        val = list(unique.values())
+
+            
+      
+        self.imgg = [[key[val.index(parts[(x,y)])] for x in range(l)] for y in range(b)]
+        for i in self.imgg:
+            print(i)
+        print(self.imgg)
+
+        img_width,img_height = self.image.size
+
+        image = Image.new("RGB", (img_width, img_height), "white")
+
+        for i, row in enumerate(self.imgg):
+            for j, cell in enumerate(row):
+                image.paste(unique[cell],(j * self.size,i * self.size))
+        # image.show()
+
+
+
+        return self.imgg,unique
+
+
+
+    
+    
+
+        
+    
+ 
+
+
+    
+
+
+
+
+new_image = """lymaadggds
+msrrsrsrll
+arllllllla
+gblblbsybr
+ssyssssyss
+ysyrrysyys
+dyyayydyrs
+mgyyymgyrs
+lmgggmgmrl
+sllsslllls"""
+
+img,dicts = ImageTile("Lines.png",2)
 
 wfc = WaveFunctionCollaspe(image)
-cProfile.run("wfc.generate(100,100)")
+# # wfc.create_img(new_image.split("\n"))
+# wfc.generate(50,50)
 
 # wfc.show("FINAL repeat =",wfc.repeat_count,"iter =",wfc.iter)
-wfc.create_img(wfc.grid)
+# wfc.create_img(wfc.grid)
